@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ACHRI VCF FILTER</title>
+<link type="text/css" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.5/css/select2.min.css" />
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.5/js/select2.full.min.js"></script>
+
+<style>
+	#throbberDiv {
+		position: fixed;
+  		top: 50%;
+   		left: 50%;
+  	 	margin: -50px 0px 0px -50px;
+   		z-index: 0 !important;
+	}
+	
+	#conceptPath{
+		width: 500px;
+	}
+	
+	#zygosityDropdown, #infoFieldsDropdown, #studyDropdown{
+		width: 500px
+	}
+</style>
+
+</head>
+<body>
+	<h1> PLEASE SELECT YOUR FILTER PARAMETERS </h1>
+	<div class="filterParams">		
+		<div class="generalParams">
+			<h2>General Parameters</h2>
+			Study Name: <select id="studyDropdown"></select> <br>
+			Zygocity:<select id="zygosityDropdown"></select> <br>
+			Filter: <input type="text" name="filterParam" id="filterParam" value="."><br>
+			Limit: <input type="text" name="limit" id="limit" value="50" ><br>
+			Offset: <input type="text" name="limit" id="limit" value="0" ><br>
+		</div>
+		
+		<div class="cohortParams">
+			<h2>Cohort Parameters</h2>
+			Concept Path: <input type="text" name="conceptPath" id="conceptPath" ><br>
+			Comparator:<select id="cohortComparatorDropdown"></select> <br>
+			Value: <input type="text" name="cohortValue" id="cohortValue" ><br>
+		</div>
+		
+		<div class="variantParams">
+			<h2>Variant Parameters</h2>
+			Info Field:<select id="infoFieldsDropdown"></select> <br>
+			Comparator:<select id="variantComparatorDropdown"></select> <br>
+			Value: <input type="text" name="infoFieldValue" id="infoFieldValue" ><br>
+		</div>
+		
+		<div id="throbberDiv">
+        	<img src="https://www.saceos.org.sg/public/images/loading-spinner.gif" alt="Lamp" width="32" height="32">
+        </div>
+		
+		<form id="filterVCF" method="post">
+			
+            <input class="filterVCF" type="button" id="filterVCF" onclick="performVCFFilter()" value="Filter!!!"/>
+       	</form>
+		
+	</div>
+	<script type="text/javascript">
+		var vcfStudiesFieldOptions;
+		var comparatorOptions = [
+			{
+				id: 0,
+				text: '='
+			},
+			{
+				id: 1,
+				text: '>'
+			},
+			{
+				id: 2,
+				text: '>='
+			},
+			{
+				id: 3,
+				text: '<'
+			},
+			{
+				id: 4,
+				text: '<='
+			}
+		];
+		var zygosityOptions = [
+			{
+				id: 0,
+				text: 'homo ref'
+			},
+			{
+				id: 1,
+				text: 'homo alt'
+			},
+			{
+				id: 2,
+				text: 'het'
+			},
+			{
+				id: 3,
+				text: 'NA'
+			}
+		];
+		$(document).ready(function() {
+			$('#throbberDiv').show();
+			$.ajax({
+	        	url: 'api/vcf/studies/get',
+	        	type: 'GET',
+	        	
+	        	success: function(data){
+	        		$('#throbberDiv').hide();
+					vcfStudiesFieldOptions = JSON.parse(data);
+					
+					for (i=0; i<vcfStudiesFieldOptions.length; i++){
+						//console.log(JSON.stringify(infoFieldOptions[i]));
+						vcfStudiesFieldOptions[i].id=i;
+						vcfStudiesFieldOptions[i].text=vcfStudiesFieldOptions[i].dataset_id;
+					}
+					$("#studyDropdown").select2({
+						data: vcfStudiesFieldOptions
+			    	});
+					$("#variantComparatorDropdown").select2({
+						data: comparatorOptions
+			    	});
+					$("#cohortComparatorDropdown").select2({
+						data: comparatorOptions
+			    	});
+					$("#zygosityDropdown").select2({
+						data: zygosityOptions
+			    	});
+					
+	        	},
+	        	error: function(){
+	        		$('#throbberDiv').hide();
+	            	alert("There was an error")
+	        	}
+	    	});
+		});
+
+		$('#studyDropdown').select2({
+			placeholder: "Please Wait While Available Studies Are Loaded"
+		});
+
+		$('#infoFieldsDropdown').select2({
+			placeholder: "Please Select a Study to Pre Populate this Selection"
+		});
+		
+		$('#studyDropdown').on('select2:select', function (e) {
+  			// Do something
+  			//alert("a selection has been made");
+  			$('#throbberDiv').show();
+  			var selectionData = e.params.data;
+  			//alert (selectionData.text);
+  			$.ajax({
+	        	url: 'api/vcf/infofields/get?study='+selectionData.text,
+	        	type: 'GET',
+	        	
+	        	success: function(data){
+	        		$('#throbberDiv').hide();
+					infoFieldOptions = JSON.parse(data);
+					
+					if (infoFieldOptions.length==0){
+						console.log("should be empting the info field dropdown");
+						$('#infoFieldsDropdown').html('').select2({data: [{id: '', text: ''}]});
+						$('#infoFieldsDropdown').select2({
+								placeholder: "Please Select a Study to Pre Populate this Selection"
+						});
+					}
+					else {
+						$('#infoFieldsDropdown').html('').select2({data: [{id: '', text: ''}]});
+						$('#infoFieldsDropdown').select2({
+								placeholder: "No Info Fields found for this study"
+						});
+						for (i=0; i<infoFieldOptions.length; i++){
+							console.log(JSON.stringify(infoFieldOptions[i]));
+							infoFieldOptions[i].id=i;
+							infoFieldOptions[i].text=infoFieldOptions[i].info_name;
+						}
+						$("#infoFieldsDropdown").select2({
+							data: infoFieldOptions
+			    		});
+					}
+					$("#variantComparatorDropdown").select2({
+						data: comparatorOptions
+			    	});
+					$("#cohortComparatorDropdown").select2({
+						data: comparatorOptions
+			    	});
+					$("#zygosityDropdown").select2({
+						data: zygosityOptions
+			    	});
+					
+	        	},
+	        	error: function(){
+	        		$('#throbberDiv').hide();
+	            	alert("There was an error")
+	        	}
+	    	});
+		});
+		
+		function performVCFFilter(){
+			 $('#throbberDiv').show();
+			var requestBodyObject={};
+			var cohortFilterParam={};
+			var cohortParams=[];
+			var variantInfoFilterParam={};
+			var variantInfoFilterParams=[];
+			requestBodyObject.study = $('#studyDropdown  option:selected').text();
+			requestBodyObject.zygosity=$('#zygosityDropdown option:selected').text();
+			requestBodyObject.filterParam=$('#filterParam').val();
+			
+			//alert ("val is "+$('#conceptPath').val().trim);
+			
+			if ($('#conceptPath').val().trim()!==''){
+				cohortFilterParam.conceptPath=$('#conceptPath').val();
+				cohortFilterParam.comparator=$('#cohortComparatorDropdown option:selected').text();
+				cohortFilterParam.value=$('#cohortValue').val();
+				cohortParams[0]=cohortFilterParam;
+			}
+			
+			variantInfoFilterParam.infoField=$('#infoFieldsDropdown option:selected').text();
+			variantInfoFilterParam.comparator=$('#variantComparatorDropdown option:selected').text();
+			variantInfoFilterParam.value=$('#infoFieldValue').val();
+			variantInfoFilterParams[0]=variantInfoFilterParam;
+			
+			requestBodyObject.variantInfoFilterParams=variantInfoFilterParams;
+			requestBodyObject.cohortParams=cohortParams;
+			requestBodyObject.limit="50";
+			requestBodyObject.offset="0";
+			//alert (JSON.stringify(requestBodyObject));
+					
+			$.ajax({
+	            url: 'api/vcf/filter/download',
+	            type: 'POST',
+	            data: JSON.stringify(requestBodyObject),
+	            
+	            success: function(data){
+	            	$('#throbberDiv').hide();
+	                alert("filter process complete, we will now download " + data);
+	                window.location.href = "api/download/filter/results?filename=" + data;
+	            },
+	            error: function(xhr, status, error){
+	              //  checkIfUserTimedOut(error.status);
+	                //alert(xhr.statusText);
+	                //console.log(xhr.statusText + xhr.status);
+	                //var err =JSON.parse(xhr.responseText);
+	                 $('#throbberDiv').hide();
+	                alert(err.Message);
+	            }
+			});
+		}
+		
+	</script>
+</body>
+</html>
