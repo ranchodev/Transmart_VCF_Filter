@@ -15,7 +15,7 @@ Once you have installed Virtualbox and Vagrant
 * Open `src/main/resources/hibernate.cfg.xml` and enter the connection details to your transmart database
 * Enter the command `vagrant up`
 * After the VM has spun up, enter the command `vagrant ssh`
-* Once you are logged into the VM, enter the command `cd ~/TRANSMART_VCF_FILTER_TOOL`
+* Once you are logged into the VM, enter the command `cd ~/Transmart_VCF_Filter`
 * Compile the source `gradle clean war`
 * Exit the Virtual Machine by entering the command `exit`
 * The WAR file should be located in <repository-folder>/build/libs
